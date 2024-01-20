@@ -2,7 +2,7 @@ from flask import Flask, jsonify
 
 app = Flask(__name__)
 
-@app.route('/ashu/status/morning')
+@app.route('/Ashwani/Shenwall/Working')
 def health_check():
     # Check the health of your application here
     # You can add more sophisticated checks based on your application's requirements
