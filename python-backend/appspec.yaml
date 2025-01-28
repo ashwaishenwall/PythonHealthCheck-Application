@@ -2,8 +2,12 @@ version: 0.0
 os: linux
 files:
   - source: /
+<<<<<<< HEAD
     destination: /var/www/html
 
+=======
+    destination: /var/www/html/
+>>>>>>> cef6cd0 (test1)
 hooks:
   BeforeInstall:
     - location: scripts/install_docker.sh
