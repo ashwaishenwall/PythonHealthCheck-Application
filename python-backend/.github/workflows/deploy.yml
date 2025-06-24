@@ -1,19 +1,14 @@
-name: Test Deploy Pipeline
+name: Verify GitHub Actions Works
 
 on:
   push:
-    branches: [master]
-
-permissions:
-  contents: write
+    branches:
+      - master
 
 jobs:
-  test-deploy:
+  test-trigger:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Test Trigger
+        run: echo "🎉 GitHub Actions is working!"
 
-      - name: Say Hello
-        run: echo "✅ GitHub Actions is working correctly and triggered on push to master!"
