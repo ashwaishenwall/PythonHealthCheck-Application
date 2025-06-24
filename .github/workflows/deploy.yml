@@ -1,0 +1,15 @@
+name: Verify GitHub Actions Works
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm GitHub Actions is enabled
+        run: echo "✅ GitHub Actions is now working!"
