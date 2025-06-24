@@ -1,21 +1,29 @@
-name: Test SSH Connection
+name: Deploy to EC2
 
 on:
   push:
     branches: [master]
 
 jobs:
-  ssh-test:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up SSH
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H 52.43.12.102 >> ~/.ssh/known_hosts
 
-      - name: Test SSH Connection
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo ✅ SSH from GitHub Actions is working!"
+      - name: Copy files to EC2
+        run: scp -o StrictHostKeyChecking=no -r ./ ec2-user@52.43.12.102:/home/ec2-user/python-app/
+
+      - name: Run Python script on EC2
+        run: ssh ec2-user@52.43.12.102 << 'EOF'
+          cd /home/ec2-user/python-app
+          python3 health_check.py
+EOF
