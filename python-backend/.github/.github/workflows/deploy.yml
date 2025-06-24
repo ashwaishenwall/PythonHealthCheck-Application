@@ -1,0 +1,15 @@
+name: Deploy to EC2 on Push to Master
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  test-trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm GitHub Actions works
+        run: echo "🎉 GitHub Actions is working!"
