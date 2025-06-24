@@ -1,0 +1,35 @@
+name: Deploy to EC2 on Push to Master
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH for EC2
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy Code on EC2
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            if [ ! -d PythonHealthCheck-Application ]; then
+              git clone https://github.com/ashwaishenwall/PythonHealthCheck-Application.git
+            fi
+
+            cd PythonHealthCheck-Application
+            git pull origin master
+
+            # Optional: Run your Python health check
+            python3 health_check.py
+EOF
+
