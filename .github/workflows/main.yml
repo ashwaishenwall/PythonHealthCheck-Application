@@ -26,4 +26,3 @@ jobs:
         run: ssh ec2-user@52.43.12.102 << 'EOF'
           cd /home/ec2-user/python-app
           python3 health_check.py
-EOF
