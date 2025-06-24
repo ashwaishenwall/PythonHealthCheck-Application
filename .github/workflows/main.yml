@@ -1,8 +1,8 @@
-name: Deploy to EC2
+name: Deploy to EC2 on Push to Master
 
 on:
   push:
-    branches: [master]  # Ensure your default branch is 'master'
+    branches: [master]
 
 permissions:
   contents: read
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Setup SSH key
@@ -22,14 +22,10 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Create target directory on EC2
-        run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} "mkdir -p /home/ec2-user/python-app"
-
       - name: Copy project files to EC2
         run: |
           scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./ ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
 
-      - name: (Optional) Run Health Check on EC2
+      - name: Run Python app on EC2
         run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} "cd /home/ec2-user/python-app && python3 health_check.py"
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} "cd /home/ec2-user/python-app/python-backend && python3 health_check.py"
