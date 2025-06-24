@@ -1,22 +1,16 @@
-name: CI/CD Pipeline with Trivy Scan
+name: CI/CD Pipeline
 
 on:
+  workflow_dispatch:
   push:
     branches:
-      - master
-  workflow_dispatch:
+      - master  # Or use a variable like ${{ vars.BRANCH_NAME }}
 
 env:
-  IMAGE_NAME: my-app
-  DEPLOY_DIR: /home/ec2-user/python-app
-  SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-  EC2_USER: ${{ secrets.EC2_USER }}
-  EC2_HOST: ${{ secrets.EC2_HOST }}
+  IMAGE_NAME: my-python-app
 
 jobs:
-
   build:
-    name: Build Docker Image
     runs-on: ubuntu-latest
 
     steps:
@@ -26,56 +20,36 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
-        run: |
-          docker build -t $IMAGE_NAME:latest .
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: ./python-app/python-backend
+          exit-code: 1
+          severity: CRITICAL,HIGH
 
-  scan:
-    name: Security Scan with Trivy
+      - name: Build Docker image
+        run: docker build -t $IMAGE_NAME:latest ./python-app/python-backend
+
+  deploy:
     runs-on: ubuntu-latest
     needs: build
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Install Trivy
-        run: |
-          sudo apt-get update && sudo apt-get install wget -y
-          wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.2_Linux-64bit.deb
-          sudo dpkg -i trivy_0.50.2_Linux-64bit.deb
-
-      - name: Scan Docker image
-        run: |
-          docker build -t $IMAGE_NAME:latest .
-          trivy image --exit-code 1 --severity HIGH,CRITICAL $IMAGE_NAME:latest
-
-  deploy:
-    name: Deploy to EC2
-    runs-on: ubuntu-latest
-    needs: scan
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Add SSH key
+      - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Copy app files to EC2 (excluding .git)
+      - name: Upload project to EC2
         run: |
-          tar --exclude='.git' -czf app.tar.gz .
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no app.tar.gz $EC2_USER@$EC2_HOST:/tmp/
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "mkdir -p $DEPLOY_DIR && tar -xzf /tmp/app.tar.gz -C $DEPLOY_DIR"
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./python-app/python-backend ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
 
-      - name: Build Docker Image on EC2
+      - name: Build Docker image on EC2
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "cd $DEPLOY_DIR/python-backend && docker build -t $IMAGE_NAME:latest ."
-
-# You can also add environments for approval protection
-# environments:
-#   name: production
-#   url: https://your-app-url
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} "
+            cd /home/ec2-user/python-app/python-backend &&
+            docker build -t $IMAGE_NAME:latest .
+          "
