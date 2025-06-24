@@ -4,28 +4,29 @@ on:
   push:
     branches: [master]
 
-permissions:
-  contents: read
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Copy project files to EC2 (excluding .git)
+      - name: Copy project files to EC2
         run: |
-          rsync -avz -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" --exclude='.git' ./ ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./ ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
 
-      - name: Run health check
+      - name: Install Python dependencies
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} "pip3 install -r /home/ec2-user/python-app/python-backend/requirements.txt"
+
+      - name: Run health check script
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} "cd /home/ec2-user/python-app/python-backend && python3 health_check.py"
