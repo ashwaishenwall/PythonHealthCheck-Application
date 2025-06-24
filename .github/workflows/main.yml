@@ -1,18 +1,19 @@
-name: Deploy to EC2 on Push to Master
+name: Deploy to EC2 using Docker
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master  # or main, depending on your branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup SSH key
+      - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
@@ -23,10 +24,12 @@ jobs:
         run: |
           scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./ ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
 
-      - name: Install Python dependencies
+      - name: SSH into EC2 and build Docker image
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} "pip3 install -r /home/ec2-user/python-app/python-backend/requirements.txt"
-
-      - name: Run health check script
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} "cd /home/ec2-user/python-app/python-backend && python3 health_check.py"
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            cd /home/ec2-user/python-app/python-backend
+            docker build -t my-python-app .
+            # Optional: Run the container
+            docker rm -f python-app || true
+            docker run -d --name python-app -p 5000:5000 my-python-app
+          EOF
