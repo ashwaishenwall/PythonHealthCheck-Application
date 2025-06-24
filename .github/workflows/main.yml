@@ -1,13 +1,28 @@
-name: Verify GitHub Actions Works
+name: Deploy to EC2 on Push to Master
 
 on:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 jobs:
-  test-trigger:
+  deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Test Trigger
-        run: echo "🎉 GitHub Actions is working!"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Copy project files to EC2
+        run: |
+          scp -o StrictHostKeyChecking=no -r ./ ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
+
+      - name: Run remote deploy script on EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} 'bash /home/ec2-user/python-app/deploy.sh'
