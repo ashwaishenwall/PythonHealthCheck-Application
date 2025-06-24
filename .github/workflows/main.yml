@@ -1,28 +1,32 @@
-name: Deploy to EC2 on Push to Master
+name: Deploy to EC2 on Push
 
 on:
   push:
     branches:
       - master
-  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
-
-      - name: Copy project files to EC2
         run: |
-          scp -o StrictHostKeyChecking=no -r ./ ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Run remote deploy script on EC2
+      - name: SCP files to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} 'bash /home/ec2-user/python-app/deploy.sh'
+          scp -o StrictHostKeyChecking=no -r . ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/python-app/
+
+      - name: Run deploy script on EC2
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd /home/${{ secrets.EC2_USER }}/python-app
+            python3 health_check.py
+EOF
