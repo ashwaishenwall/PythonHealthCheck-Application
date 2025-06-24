@@ -1,4 +1,4 @@
-name: Verify GitHub Actions Works
+name: Deploy to EC2 via SSH
 
 on:
   push:
@@ -6,9 +6,26 @@ on:
       - master
 
 jobs:
-  test-trigger:
+  deploy:
     runs-on: ubuntu-latest
-    steps:
-      - name: Test Trigger
-        run: echo "🎉 GitHub Actions is working!"
 
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup SSH key
+      run: |
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Copy files to EC2 (excluding .git)
+      run: |
+        rsync -avz --exclude '.git' -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
+
+    - name: Build Docker image on EC2
+      run: |
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          cd /home/ec2-user/python-app/python-backend
+          docker build -t my-app .
+        EOF
