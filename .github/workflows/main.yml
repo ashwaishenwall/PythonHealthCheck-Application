@@ -1,16 +1,15 @@
-name: SSH Test
+name: Test SSH Connection
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
 
 jobs:
-  ssh:
+  ssh-test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up SSH access
+      - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
