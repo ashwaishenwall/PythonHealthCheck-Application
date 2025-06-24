@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup SSH key
@@ -22,10 +22,10 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Copy project files to EC2
+      - name: Copy project files to EC2 (excluding .git)
         run: |
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./ ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
+          rsync -avz -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" --exclude='.git' ./ ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
 
-      - name: Run Python app on EC2
+      - name: Run health check
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} "cd /home/ec2-user/python-app/python-backend && python3 health_check.py"
