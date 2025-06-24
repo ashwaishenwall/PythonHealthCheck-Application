@@ -1,6 +1,7 @@
-name: Deploy to EC2
+name: Deploy Existing Code on EC2
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -10,30 +11,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Setup SSH
+      - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-      - name: Copy project files to EC2
+      - name: SSH into EC2 and run Docker
         run: |
-          tar --exclude='.git' -czf app.tar.gz .
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no app.tar.gz ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
-            mkdir -p /home/${{ secrets.EC2_USER }}/python-app &&
-            tar -xzf /home/${{ secrets.EC2_USER }}/app.tar.gz -C /home/${{ secrets.EC2_USER }}/python-app/
-          "
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd /home/${{ secrets.EC2_USER }}/python-app/python-backend
 
-      - name: Build and run Docker container on EC2
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
-            cd /home/${{ secrets.EC2_USER }}/python-app/python-backend &&
-            docker build -t myapp . &&
-            docker stop myapp || true &&
-            docker rm myapp || true &&
+            echo "✅ In backend folder"
+
+            # Optional: pull code if using git (skip if editing directly)
+            # git pull origin master
+
+            # Build Docker image
+            docker build -t myapp .
+
+            # Stop and remove old container (ignore if not running)
+            docker stop myapp || true
+            docker rm myapp || true
+
+            # Run new container
             docker run -d --name myapp -p 80:5000 myapp
-          "
+
+            echo "🚀 Deployed successfully"
+          EOF
