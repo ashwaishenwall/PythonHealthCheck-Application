@@ -14,22 +14,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: ✅ Checkout code
+      - name: ✅ Checkout Code
         uses: actions/checkout@v4
 
-      - name: 🔍 Confirm path to health_check.py
+      - name: 🔍 Confirm project structure
         run: find . -name 'health_check.py'
 
       - name: ⚙️ Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: 🔐 Install and run Trivy
+      - name: 🔐 Install and Run Trivy Scan
         run: |
           wget https://github.com/aquasecurity/trivy/releases/download/v0.49.1/trivy_0.49.1_Linux-64bit.deb
           sudo dpkg -i trivy_0.49.1_Linux-64bit.deb
           trivy fs --exit-code 1 --severity CRITICAL,HIGH ./python-app/python-backend
 
-      - name: 🐳 Build Docker image
+      - name: 🐳 Build Docker Image
         run: docker build -t $IMAGE_NAME:latest ./python-app/python-backend
 
   deploy:
@@ -37,18 +37,25 @@ jobs:
     needs: build
 
     steps:
-      - name: 🔐 Setup SSH to EC2
+      - name: 🔐 Setup SSH Access to EC2
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: 📤 Upload to EC2
+      - name: 📤 Upload Project to EC2
         run: |
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./python-app/python-backend ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
+          if [ -d "./python-app/python-backend" ]; then
+            echo "✅ Uploading ./python-app/python-backend to EC2..."
+            scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./python-app/python-backend ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
+          else
+            echo "❌ ERROR: ./python-app/python-backend not found"
+            find .
+            exit 1
+          fi
 
-      - name: 🐳 Build image on EC2
+      - name: 🐳 Build Docker Image on EC2
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
             cd /home/ec2-user/python-app/python-backend || exit 1
