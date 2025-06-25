@@ -27,10 +27,10 @@ jobs:
         run: |
           wget https://github.com/aquasecurity/trivy/releases/download/v0.49.1/trivy_0.49.1_Linux-64bit.deb
           sudo dpkg -i trivy_0.49.1_Linux-64bit.deb
-          trivy fs --exit-code 1 --severity CRITICAL,HIGH ./python-app/python-backend
+          trivy fs --exit-code 1 --severity CRITICAL,HIGH .
 
       - name: 🐳 Build Docker Image
-        run: docker build -t $IMAGE_NAME:latest ./python-app/python-backend
+        run: docker build -t $IMAGE_NAME:latest .
 
   deploy:
     runs-on: ubuntu-latest
@@ -46,11 +46,11 @@ jobs:
 
       - name: 📤 Upload Project to EC2
         run: |
-          if [ -d "./python-app/python-backend" ]; then
-            echo "✅ Uploading ./python-app/python-backend to EC2..."
-            scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./python-app/python-backend ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
+          if [ -d "." ]; then
+            echo "✅ Uploading project to EC2..."
+            scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r . ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
           else
-            echo "❌ ERROR: ./python-app/python-backend not found"
+            echo "❌ ERROR: Project directory not found"
             find .
             exit 1
           fi
@@ -58,6 +58,6 @@ jobs:
       - name: 🐳 Build Docker Image on EC2
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-            cd /home/ec2-user/python-app/python-backend || exit 1
+            cd /home/ec2-user/python-app || exit 1
             docker build -t my-python-app:latest .
           EOF
