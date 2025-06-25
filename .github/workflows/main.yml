@@ -19,9 +19,9 @@ jobs:
 
       - name: 🚀 SSH into EC2 and deploy app
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} bash -s <<'ENDSSH'
             set -e
-#############################adding git part
+
             echo "📥 Clone or pull latest repo"
             if [ ! -d ~/PythonHealthCheck-Application ]; then
               git clone https://github.com/ashwanishenwall/PythonHealthCheck-Application.git
@@ -44,4 +44,4 @@ jobs:
             docker run -d --name myapp -p 80:5000 myapp
 
             echo "✅ Deployment complete"
-          EOF
+          ENDSSH
