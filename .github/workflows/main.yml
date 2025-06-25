@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📁 Set up SSH key
+      - name: 📁 Set up SSH key for EC2
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
@@ -26,28 +26,32 @@ jobs:
           ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
 
-            echo "📁 Checking if project directory exists..."
+            echo "📁 Setting up GitHub SSH key..."
+            mkdir -p ~/.ssh
+            echo "${{ secrets.GITHUB_DEPLOY_KEY }}" > ~/.ssh/github_key
+            chmod 600 ~/.ssh/github_key
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+
+            echo "📥 Cloning or pulling repo..."
             if [ ! -d ~/python-backend ]; then
-              echo "📥 Cloning repository..."
-              git clone https://github.com/ashwanishenwall/PythonHealthCheck-Application.git
+              GIT_SSH_COMMAND="ssh -i ~/.ssh/github_key" git clone git@github.com:ashwanishenwall/PythonHealthCheck-Application.git
               mv PythonHealthCheck-Application/python-backend ~/
+            else
+              cd ~/python-backend
+              GIT_SSH_COMMAND="ssh -i ~/.ssh/github_key" git pull origin master
             fi
 
-            echo "📁 Navigating to project directory..."
             cd ~/python-backend
-
-            echo "🔄 Pulling latest code..."
-            git pull origin master
 
             echo "🔨 Building Docker image..."
             docker build -t myapp .
 
-            echo "🧼 Stopping and removing existing container..."
+            echo "🧼 Cleaning up old container..."
             docker stop myapp || true
             docker rm myapp || true
 
-            echo "🚀 Starting new container..."
+            echo "🚀 Running new container..."
             docker run -d --name myapp -p 80:5000 myapp
 
-            echo "✅ Deployment completed successfully!"
+            echo "✅ Deployment done!"
           EOF
