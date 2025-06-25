@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - master  # Or use a variable like ${{ vars.BRANCH_NAME }}
+      - master
 
 env:
   IMAGE_NAME: my-python-app
@@ -15,20 +15,23 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@master
+      - name: Debug folder structure
+        run: ls -R
+
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@v0.14.0
         with:
           scan-type: fs
           scan-ref: ./python-app/python-backend
           exit-code: 1
           severity: CRITICAL,HIGH
 
-      - name: Build Docker image
+      - name: Build Docker image locally
         run: docker build -t $IMAGE_NAME:latest ./python-app/python-backend
 
   deploy:
@@ -41,7 +44,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
       - name: Upload project to EC2
         run: |
@@ -49,7 +52,7 @@ jobs:
 
       - name: Build Docker image on EC2
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} "
-            cd /home/ec2-user/python-app/python-backend &&
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << EOF
+            cd /home/ec2-user/python-app/python-backend || exit 1
             docker build -t $IMAGE_NAME:latest .
-          "
+          EOF
