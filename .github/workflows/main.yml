@@ -26,21 +26,28 @@ jobs:
           ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
 
+            echo "📁 Checking if project directory exists..."
+            if [ ! -d ~/python-backend ]; then
+              echo "📥 Cloning repository..."
+              git clone https://github.com/<your-username>/PythonHealthCheck-Application.git
+              mv PythonHealthCheck-Application/python-backend ~/
+            fi
+
             echo "📁 Navigating to project directory..."
             cd ~/python-backend
 
-            echo "🔄 Pulling latest code from GitHub..."
+            echo "🔄 Pulling latest code..."
             git pull origin master
 
             echo "🔨 Building Docker image..."
             docker build -t myapp .
 
-            echo "🧼 Stopping and removing old container..."
+            echo "🧼 Stopping and removing existing container..."
             docker stop myapp || true
             docker rm myapp || true
 
-            echo "🏃 Starting new container..."
+            echo "🚀 Starting new container..."
             docker run -d --name myapp -p 80:5000 myapp
 
-            echo "✅ Deployment successful!"
+            echo "✅ Deployment completed successfully!"
           EOF
