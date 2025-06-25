@@ -17,24 +17,24 @@ jobs:
       - name: ✅ Checkout code
         uses: actions/checkout@v4
 
+      - name: 🧩 DEBUG: Show full repo structure
+        run: |
+          echo "🔍 Files in workspace:"
+          find .
+
       - name: ⚙️ Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: 🔍 Show full repo structure
-        run: |
-          echo "📁 Workspace content:"
-          find .
 
       - name: 🔐 Trivy scan on source code
         uses: aquasecurity/trivy-action@0.11.2
         with:
           scan-type: fs
-          scan-ref: ./python-backend
+          scan-ref: ./app/python-backend
           exit-code: 1
           severity: CRITICAL,HIGH
 
       - name: 🐳 Build Docker image locally
-        run: docker build -t $IMAGE_NAME:latest ./python-backend
+        run: docker build -t $IMAGE_NAME:latest ./app/python-backend
 
   deploy:
     runs-on: ubuntu-latest
@@ -48,14 +48,13 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: 🔍 Check and Upload folder to EC2
+      - name: 📤 Upload code to EC2
         run: |
-          echo "📦 Checking if folder exists before upload..."
-          if [ -d "./python-backend" ]; then
-            echo "✅ Found ./python-backend, uploading to EC2"
-            scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./python-backend ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
+          if [ -d "./app/python-backend" ]; then
+            echo "✅ Found ./app/python-backend, uploading..."
+            scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./app/python-backend ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
           else
-            echo "❌ ERROR: ./python-backend does not exist"
+            echo "❌ ERROR: ./app/python-backend does not exist"
             find .
             exit 1
           fi
