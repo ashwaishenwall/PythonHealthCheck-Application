@@ -56,8 +56,13 @@ jobs:
           fi
 
       - name: 🐳 Build Docker Image on EC2
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-            cd /home/ec2-user/python-app/python-backend || exit 1
-            docker build -t my-python-app:latest .
-          EOF
+        - name: 🚀 Build & Run on EC2
+  run: |
+    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+      cd /home/ec2-user/python-app/python-backend
+      docker build -t test:latest .
+      docker rm -f test-container || true
+      docker run -d -p 80:5000 --name test-container test:latest
+    EOF
+
+          
