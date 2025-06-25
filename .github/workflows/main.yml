@@ -1,4 +1,4 @@
-name: 🚀 Deploy Python App to EC2
+name: 🚀 Deploy to EC2 with SSH
 
 on:
   workflow_dispatch:
@@ -11,47 +11,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📁 Set up SSH key for EC2
+      - name: 📁 Set up EC2 SSH key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-      - name: 🔐 Add EC2 host to known_hosts
-        run: |
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+      - name: 🔐 Add EC2 to known_hosts
+        run: ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: 🚀 SSH into EC2 and deploy
+      - name: 🚀 SSH to EC2 and deploy
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
 
-            echo "📁 Setting up GitHub SSH key..."
-            mkdir -p ~/.ssh
-            echo "${{ secrets.GITHUB_DEPLOY_KEY }}" > ~/.ssh/github_key
-            chmod 600 ~/.ssh/github_key
-            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-
-            echo "📥 Cloning or pulling repo..."
+            echo "📥 Cloning repo (via HTTPS or SSH)"
             if [ ! -d ~/python-backend ]; then
-              GIT_SSH_COMMAND="ssh -i ~/.ssh/github_key" git clone git@github.com:ashwanishenwall/PythonHealthCheck-Application.git
+              git clone https://github.com/ashwanishenwall/PythonHealthCheck-Application.git
               mv PythonHealthCheck-Application/python-backend ~/
             else
               cd ~/python-backend
-              GIT_SSH_COMMAND="ssh -i ~/.ssh/github_key" git pull origin master
+              git pull origin master
             fi
 
             cd ~/python-backend
 
-            echo "🔨 Building Docker image..."
+            echo "🐳 Building Docker"
             docker build -t myapp .
 
-            echo "🧼 Cleaning up old container..."
+            echo "🧼 Cleanup"
             docker stop myapp || true
             docker rm myapp || true
 
-            echo "🚀 Running new container..."
+            echo "🚀 Run container"
             docker run -d --name myapp -p 80:5000 myapp
 
-            echo "✅ Deployment done!"
+            echo "✅ Done"
           EOF
