@@ -29,7 +29,7 @@ jobs:
           sudo dpkg -i trivy_0.49.1_Linux-64bit.deb
           trivy fs --exit-code 1 --severity CRITICAL,HIGH .
 
-      - name: 🐳 Build Docker Image
+      - name: 🐳 Build Docker Image (optional test)
         run: docker build -t $IMAGE_NAME:latest ./python-app/python-backend
 
   deploy:
@@ -46,23 +46,14 @@ jobs:
 
       - name: 📤 Upload Project to EC2
         run: |
-          if [ -d "." ]; then
-            echo "✅ Uploading project to EC2..."
-            scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r . ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
-          else
-            echo "❌ ERROR: Project directory not found"
-            find .
-            exit 1
-          fi
+          echo "✅ Uploading project to EC2..."
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r python-app ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/
 
-      - name: 🐳 Build Docker Image on EC2
-        - name: 🚀 Build & Run on EC2
-  run: |
-    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-      cd /home/ec2-user/python-app/python-backend
-      docker build -t test:latest .
-      docker rm -f test-container || true
-      docker run -d -p 80:5000 --name test-container test:latest
-    EOF
-
-          
+      - name: 🚀 Build & Run on EC2
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            cd /home/ec2-user/python-app/python-backend
+            docker build -t ashu:latest .
+            docker rm -f ashu-container || true
+            docker run -d -p 80:5000 --name ashu-container ashu:latest
+          EOF
