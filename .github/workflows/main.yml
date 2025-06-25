@@ -14,24 +14,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: ✅ Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 🧩 DEBUG: Show full repo structure
-        run: |
-          echo "🔍 Files in workspace:"
-          find .
+      - name: Show repo structure (for debugging)
+        run: find .
 
-      - name: ⚙️ Set up Docker Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: 🔐 Install and run Trivy (manual install, no broken action)
+      - name: Install Trivy and run scan
         run: |
           wget https://github.com/aquasecurity/trivy/releases/download/v0.49.1/trivy_0.49.1_Linux-64bit.deb
           sudo dpkg -i trivy_0.49.1_Linux-64bit.deb
           trivy fs --exit-code 1 --severity CRITICAL,HIGH ./app/python-backend
 
-      - name: 🐳 Build Docker image locally
+      - name: Build Docker image
         run: docker build -t $IMAGE_NAME:latest ./app/python-backend
 
   deploy:
@@ -39,25 +37,25 @@ jobs:
     needs: build
 
     steps:
-      - name: 🔐 Setup SSH access to EC2
+      - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: 📤 Upload code to EC2
+      - name: Upload project to EC2
         run: |
           if [ -d "./app/python-backend" ]; then
-            echo "✅ Found ./app/python-backend, uploading..."
+            echo "Uploading ./app/python-backend"
             scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./app/python-backend ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
           else
-            echo "❌ ERROR: ./app/python-backend does not exist"
+            echo "ERROR: Directory ./app/python-backend not found"
             find .
             exit 1
           fi
 
-      - name: 🐳 Build Docker image on EC2
+      - name: Build Docker image on EC2
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
             cd /home/ec2-user/python-app/python-backend || exit 1
