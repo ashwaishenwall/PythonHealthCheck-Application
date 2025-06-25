@@ -14,48 +14,52 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: ✅ Checkout code
         uses: actions/checkout@v4
 
-      - name: Show repo structure (for debugging)
-        run: find .
+      - name: 🔍 DEBUG – Show folder structure and health_check.py path
+        run: |
+          echo "Searching for health_check.py..."
+          find . -name 'health_check.py'
+          echo "All directories:"
+          find . -type d
 
-      - name: Set up Docker Buildx
+      - name: ⚙️ Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Install Trivy and run scan
+      - name: 🔐 Install and run Trivy
         run: |
           wget https://github.com/aquasecurity/trivy/releases/download/v0.49.1/trivy_0.49.1_Linux-64bit.deb
           sudo dpkg -i trivy_0.49.1_Linux-64bit.deb
-          trivy fs --exit-code 1 --severity CRITICAL,HIGH ./app/python-backend
+          trivy fs --exit-code 1 --severity CRITICAL,HIGH ./python-backend
 
-      - name: Build Docker image
-        run: docker build -t $IMAGE_NAME:latest ./app/python-backend
+      - name: 🐳 Build Docker image locally
+        run: docker build -t $IMAGE_NAME:latest ./python-backend
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
 
     steps:
-      - name: Set up SSH
+      - name: 🔐 Setup SSH access to EC2
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Upload project to EC2
+      - name: 📤 Upload app to EC2
         run: |
-          if [ -d "./app/python-backend" ]; then
-            echo "Uploading ./app/python-backend"
-            scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./app/python-backend ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
+          if [ -d "./python-backend" ]; then
+            echo "✅ Found ./python-backend, uploading to EC2..."
+            scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./python-backend ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
           else
-            echo "ERROR: Directory ./app/python-backend not found"
+            echo "❌ ERROR: ./python-backend not found!"
             find .
             exit 1
           fi
 
-      - name: Build Docker image on EC2
+      - name: 🐳 Build Docker image on EC2
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
             cd /home/ec2-user/python-app/python-backend || exit 1
