@@ -29,8 +29,9 @@ jobs:
           sudo dpkg -i trivy_0.49.1_Linux-64bit.deb
           trivy fs --exit-code 1 --severity CRITICAL,HIGH .
 
+      # ✅ FIXED HERE (removed incorrect subfolder)
       - name: 🐳 Build Docker Image (optional test)
-        run: docker build -t $IMAGE_NAME:latest ./python-app/python-backend
+        run: docker build -t $IMAGE_NAME:latest ./python-backend
 
   deploy:
     runs-on: ubuntu-latest
@@ -55,5 +56,3 @@ jobs:
             cd /home/ec2-user/python-app/python-backend
             docker build -t ashu:latest .
             docker rm -f ashu-container || true
-            docker run -d -p 80:5000 --name ashu-container ashu:latest
-          EOF
