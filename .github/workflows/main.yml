@@ -20,23 +20,24 @@ jobs:
       - name: ⚙️ Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: 🔍 Show folder structure for debugging
+      - name: 🔍 Show full repo structure
         run: |
-          echo "Current path: $(pwd)"
-          ls -R
+          echo "📁 Workspace content:"
+          find .
 
-      - name: 🔐 Run Trivy filesystem scan (safe)
+      - name: 🔐 Trivy scan on source code
         run: |
-          if [ -d "./python-app/python-backend" ]; then
-            echo "✅ Running Trivy scan on ./python-app/python-backend"
-            trivy fs ./python-app/python-backend --severity CRITICAL,HIGH --exit-code 1
+          TARGET="./python-backend"
+          if [ -d "$TARGET" ]; then
+            echo "✅ Scanning $TARGET"
+            trivy fs $TARGET --severity CRITICAL,HIGH --exit-code 1
           else
-            echo "❌ ERROR: Directory ./python-app/python-backend not found"
+            echo "❌ ERROR: Directory $TARGET not found"
             exit 1
           fi
 
       - name: 🐳 Build Docker image locally
-        run: docker build -t $IMAGE_NAME:latest ./python-app/python-backend
+        run: docker build -t $IMAGE_NAME:latest ./python-backend
 
   deploy:
     runs-on: ubuntu-latest
@@ -50,9 +51,9 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: 📤 Upload project to EC2
+      - name: 📤 Upload code to EC2
         run: |
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./python-app/python-backend ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./python-backend ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
 
       - name: 🐳 Build Docker image on EC2
         run: |
