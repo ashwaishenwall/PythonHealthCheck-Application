@@ -11,31 +11,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup SSH key
+      - name: 📁 Set up SSH key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-      - name: SSH into EC2 and run Docker
+      - name: 🚀 SSH into EC2 and deploy app
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            cd /home/${{ secrets.EC2_USER }}/python-app/python-backend
+            set -e  # Exit immediately if a command fails
+
+            cd /home/${{ secrets.EC2_USER }}/python-backend
 
             echo "✅ In backend folder"
 
-            # Optional: pull code if using git (skip if editing directly)
+            # Optional: git pull
             # git pull origin master
 
-            # Build Docker image
+            echo "🔨 Building Docker image..."
             docker build -t myapp .
 
-            # Stop and remove old container (ignore if not running)
+            echo "🛑 Stopping existing container if running..."
             docker stop myapp || true
             docker rm myapp || true
 
-            # Run new container
+            echo "🏃 Running new container..."
             docker run -d --name myapp -p 80:5000 myapp
 
-            echo "🚀 Deployed successfully"
+            echo "✅ Deployed successfully!"
           EOF
