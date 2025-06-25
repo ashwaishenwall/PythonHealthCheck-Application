@@ -30,7 +30,7 @@ jobs:
           trivy fs --exit-code 1 --severity CRITICAL,HIGH .
 
       - name: 🐳 Build Docker Image
-        run: docker build -t $IMAGE_NAME:latest .
+        run: docker build -t $IMAGE_NAME:latest ./python-app/python-backend
 
   deploy:
     runs-on: ubuntu-latest
