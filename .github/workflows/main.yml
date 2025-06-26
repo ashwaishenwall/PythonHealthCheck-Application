@@ -6,11 +6,12 @@ on:
     branches:
       - master
       - prod
+
 env:
-   IMAGE_NAME: my-python-app
-   AWS_REGION: us-west-2
-   ECR_REPOSITORY: my-python-app
-   IMAGE_TAG: latest
+  IMAGE_NAME: my-python-app
+  AWS_REGION: us-west-2
+  ECR_REPOSITORY: my-python-app
+  IMAGE_TAG: latest
 
 jobs:
   build-and-ec2-deploy:
@@ -45,7 +46,6 @@ jobs:
 
       - name: 📤 Upload Code to EC2
         run: |
-          echo "✅ Uploading code to EC2..."
           scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./python-backend ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/
 
       - name: 🚀 Build & Run on EC2
@@ -66,7 +66,7 @@ jobs:
       - name: ✅ Checkout Code
         uses: actions/checkout@v4
 
-      - name: 🔐 Configure AWS Credentials
+      - name: 🔐 Configure AWS Credentials (Secrets-based)
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -79,6 +79,29 @@ jobs:
 
       - name: 📦 Build and Push Docker Image to ECR
         run: |
-          docker build -t $ECR_REPOSITORY:$IMAGE_TAG ./python-backend
-          docker tag $ECR_REPOSITORY:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:$IMAGE_TAG
-          docker push ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:$IMAGE_TAG
+          docker build -t $IMAGE_NAME:latest ./python-backend
+          docker tag $IMAGE_NAME:latest ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:$IMAGE_TAG
+
+  eks-deploy:
+    if: github.ref == 'refs/heads/prod'
+    needs: ecr-push
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: ✅ Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔐 Configure AWS Credentials (OIDC Role)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::211125363247:role/BitbuckerEKSRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: ⚙️ Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --region eu-west-2 --name bjs-staging-cluster
