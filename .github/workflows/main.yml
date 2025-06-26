@@ -60,7 +60,16 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
             cd /home/ec2-user/python-backend
-            docker build -t ashu:latest .
+
+            echo "🧹 Stopping old container (if exists)"
             docker rm -f ashu-container || true
+
+            echo "🔒 Releasing port 80 if used"
+            sudo fuser -k 80/tcp || true
+
+            echo "🐳 Building new Docker image"
+            docker build -t ashu:latest .
+
+            echo "🚀 Running container on port 80"
             docker run -d -p 80:5000 --name ashu-container ashu:latest
           EOF
