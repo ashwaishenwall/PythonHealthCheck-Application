@@ -9,8 +9,8 @@ on:
 
  env:
    IMAGE_NAME: my-python-app
-   AWS_REGION: ap-south-1
-   ECR_REPOSITORY: my-python-apps
+   AWS_REGION: us-west-2
+   ECR_REPOSITORY: my-python-app
    IMAGE_TAG: latest
 
 jobs:
