@@ -46,7 +46,6 @@ jobs:
 
       - name: 📤 Upload Code to EC2
         run: |
-          echo "✅ Uploading code to EC2..."
           scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./python-backend ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/
 
       - name: 🚀 Build & Run on EC2
