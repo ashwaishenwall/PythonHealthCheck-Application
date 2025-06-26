@@ -7,11 +7,11 @@ on:
       - master
       - prod
 
-# env:
-#   IMAGE_NAME: my-python-app
-#   AWS_REGION: ap-south-1
-#   ECR_REPOSITORY: my-python-apps
-#   IMAGE_TAG: latest
+ env:
+   IMAGE_NAME: my-python-app
+   AWS_REGION: ap-south-1
+   ECR_REPOSITORY: my-python-apps
+   IMAGE_TAG: latest
 
 jobs:
   build-and-ec2-deploy:
