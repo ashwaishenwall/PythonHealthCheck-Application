@@ -6,8 +6,7 @@ on:
     branches:
       - master
       - prod
-
- env:
+env:
    IMAGE_NAME: my-python-app
    AWS_REGION: us-west-2
    ECR_REPOSITORY: my-python-app
