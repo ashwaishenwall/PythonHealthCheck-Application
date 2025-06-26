@@ -29,9 +29,9 @@ jobs:
           sudo dpkg -i trivy_0.49.1_Linux-64bit.deb
           trivy fs --exit-code 1 --severity CRITICAL,HIGH .
 
-      # ✅ Fixed Docker build context path for GitHub repo
+      # ✅ Build Docker image from correct GitHub repo folder
       - name: 🐳 Build Docker Image (optional test)
-        run: docker build -t $IMAGE_NAME:latest ./python-backend
+        run: docker build -t $IMAGE_NAME:latest ./python-app/python-backend
 
   deploy:
     runs-on: ubuntu-latest
@@ -45,12 +45,13 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      # ✅ Upload only python-backend (not full python-app) for better performance
+      # ✅ Upload correct directory from GitHub to EC2
       - name: 📤 Upload Code to EC2
         run: |
           echo "✅ Uploading code to EC2..."
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./python-backend ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/python-app/
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ./python-app ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/
 
+      # ✅ Build Docker image and run container on EC2
       - name: 🚀 Build & Run on EC2
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
