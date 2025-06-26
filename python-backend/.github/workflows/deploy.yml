@@ -7,11 +7,6 @@ on:
       - master
       - prod
 
- env:
-   IMAGE_NAME: my-python-app
-   AWS_REGION: us-west-2
-   ECR_REPOSITORY: my-python-app
-   IMAGE_TAG: latest
 
 jobs:
   build-and-ec2-deploy:
@@ -80,8 +75,10 @@ jobs:
 
       - name: 📦 Build and Push Docker Image to ECR
         run: |
-          docker build -t $ECR_REPOSITORY:$IMAGE_TAG ./python-backend
-          docker tag $ECR_REPOSITORY:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:$IMAGE_TAG
-          docker push ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:$IMAGE_TAG
-
+          # docker build -t $ECR_REPOSITORY:$IMAGE_TAG ./python-backend
+          # docker tag $ECR_REPOSITORY:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:$IMAGE_TAG
+          # docker push ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:$IMAGE_TAG
+          docker build -t my-python-app .
+          docker tag my-python-app:latest 211125363247.dkr.ecr.us-west-2.amazonaws.com/my-python-app:latest
+          docker push 211125363247.dkr.ecr.us-west-2.amazonaws.com/my-python-app:latest
 
