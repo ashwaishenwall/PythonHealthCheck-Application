@@ -10,7 +10,7 @@ WORKDIR /app
 # Copy app code
 COPY health_check.py .
 
-# Install dependencies
+## Install dependencies
 RUN pip install --no-cache-dir flask
 
 # Expose the port
