@@ -5,12 +5,17 @@ on:
   push:
     branches:
       - master
+      - prod
 
 env:
   IMAGE_NAME: my-python-app
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: my-python-app
+  IMAGE_TAG: latest
 
 jobs:
-  build:
+  build-and-ec2-deploy:
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
 
     steps:
@@ -32,18 +37,6 @@ jobs:
           sudo dpkg -i trivy_0.49.1_Linux-64bit.deb
           trivy fs --exit-code 1 --severity CRITICAL,HIGH ./python-backend
 
-      - name: 🐳 Build Docker Image
-        run: |
-          docker build -t $IMAGE_NAME:latest ./python-backend
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: ✅ Checkout Code Again
-        uses: actions/checkout@v4
-
       - name: 🔐 Setup SSH Access to EC2
         run: |
           mkdir -p ~/.ssh
@@ -60,17 +53,33 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
             cd /home/ec2-user/python-backend
-
-            echo "🧹 Stopping old container (if exists)"
             docker rm -f ashu-container || true
-            docker rm -f myapp || true
-
-            echo "🔒 Releasing port 80 if used"
             sudo fuser -k 80/tcp || true
-
-            echo "🐳 Building new Docker image"
             docker build -t ashu:latest .
-
-            echo "🚀 Running container on port 80"
             docker run -d -p 80:5000 --name ashu-container ashu:latest
           EOF
+
+  ecr-push:
+    if: github.ref == 'refs/heads/prod'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ✅ Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔐 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 🐳 Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: 📦 Build and Push Docker Image to ECR
+        run: |
+          docker build -t $ECR_REPOSITORY:$IMAGE_TAG ./python-backend
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:$IMAGE_TAG
+          docker push ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:$IMAGE_TAG
