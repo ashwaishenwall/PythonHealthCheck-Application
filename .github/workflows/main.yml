@@ -108,4 +108,5 @@ jobs:
       - name: k8 file
         run: |
           kubectl create ns test-action
+          kubectl apply -f /k8
           
