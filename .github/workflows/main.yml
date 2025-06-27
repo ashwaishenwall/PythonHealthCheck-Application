@@ -107,6 +107,5 @@ jobs:
           aws eks update-kubeconfig --region eu-west-2 --name bjs-staging-cluster
       - name: k8 file
         run: |
-          kubectl create ns test-action
           kubectl apply -f /k8
           
