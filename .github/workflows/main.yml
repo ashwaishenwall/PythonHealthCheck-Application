@@ -107,5 +107,5 @@ jobs:
           aws eks update-kubeconfig --region eu-west-2 --name bjs-staging-cluster
       - name: k8 file
         run: |
-          kubectl apply -f /k8
+          kubectl apply -f python-backend/k8
           
