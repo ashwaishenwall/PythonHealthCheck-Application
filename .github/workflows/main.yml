@@ -108,5 +108,5 @@ jobs:
       - name: k8 file
         run: |
           cd python-backend/k8
-          kubectl rollout deployment/my-python-app -n bitbucket
+          kubectl rollout restart deployment/my-python-app -n bitbucket
           
