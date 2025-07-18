@@ -108,7 +108,6 @@ jobs:
       - name: k8 file
         run: |
           cd python-backend/k8
-          kubectl rollout restart deployment/my-python-app -n bitbucket
           if kubectl get deployment "$DEPLOYMENT" -n "$NAMESPACE" > /dev/null 2>&1; then
             echo "✅ Deployment exists. Rolling out..."
             kubectl rollout restart deployment/"$DEPLOYMENT" -n "$NAMESPACE"
