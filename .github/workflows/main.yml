@@ -109,10 +109,3 @@ jobs:
         run: |
           cd python-backend/k8
           kubectl apply -f deployment.yaml "$NAMESPACE"
-          # if kubectl get deployment "$DEPLOYMENT" -n "$NAMESPACE" > /dev/null 2>&1; then
-          #   echo "✅ Deployment exists. Rolling out..."
-          #   kubectl rollout restart deployment/"$DEPLOYMENT" -n "$NAMESPACE"
-          # else
-          #   echo "⚠️ Deployment not found. Applying manifests..."
-          #   kubectl apply -f . -n "$NAMESPACE"
-          # fi
