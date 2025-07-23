@@ -105,8 +105,8 @@ jobs:
       - name: ⚙️ Update kubeconfig for EKS
         run: |
           aws eks update-kubeconfig --region eu-west-2 --name bjs-staging-cluster
-      - name: name
-        run: echo "Namespace is: $NAMESPACE"
+      - name: show ns
+        run: echo "Namespace is $NAMESPACE"
       - name: k8 file
         run: |
           cd python-backend/k8
