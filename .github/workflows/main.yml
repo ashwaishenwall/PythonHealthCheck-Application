@@ -109,5 +109,6 @@ jobs:
         run: echo "Namespace is $NAMESPACE"
       - name: k8 file
         run: |
+        
           cd python-backend/k8
           kubectl apply -f . -n  "$NAMESPACE"
