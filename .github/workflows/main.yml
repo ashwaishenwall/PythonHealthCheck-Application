@@ -105,12 +105,7 @@ jobs:
       - name: ⚙️ Update kubeconfig for EKS
         run: |
           aws eks update-kubeconfig --region eu-west-2 --name bjs-staging-cluster
-          echo $NAMESPACE
-          if kubectl get pod nginx &>/dev/null; then
-            echo "Pod nginx already exists"
-          else
-           kubectl apply -f nginx-pod.yaml
-           fi
+        
           kubectl apply -f  python-backend/k8/deployment.yaml
        
       # - name: show ns
