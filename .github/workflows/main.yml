@@ -106,8 +106,8 @@ jobs:
         run: |
           aws eks update-kubeconfig --region eu-west-2 --name bjs-staging-cluster
           echo $NAMESPACE
-          kubectl run nginx --image=nginx -n 
-          kubec
+          kubectl run nginx --image=nginx
+       
       # - name: show ns
       #   run: echo "Namespace is $NAMESPACE"
       # - name: k8 file
