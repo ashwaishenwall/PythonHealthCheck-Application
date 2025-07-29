@@ -107,6 +107,7 @@ jobs:
           aws eks update-kubeconfig --region eu-west-2 --name bjs-staging-cluster
           echo $NAMESPACE
           kubectl run nginx --image=nginx
+          kubectl apply -f  python-backend/k8/deployment.yaml
        
       # - name: show ns
       #   run: echo "Namespace is $NAMESPACE"
