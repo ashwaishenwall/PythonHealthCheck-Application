@@ -4,7 +4,7 @@ app = Flask(__name__)
 
 @app.route('/status')
 def health_check():
-    status = {"status": "OK", "message": "Ashwani everything is fine!"}
+    # status = {"status": "OK", "message": "Ashwani everything is fine!"}
     return jsonify(status)
 
 if __name__ == '__main__':
